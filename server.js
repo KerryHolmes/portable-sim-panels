@@ -64,6 +64,31 @@ app.post('/',function(req,res,next){
 	res.end("published");
 } );
 
+function getLatLon(myVars) {
+    console.log(myVars);
+    simConnect.requestDataOnSimObject(myVars, function (data) {
+        let json = '{'
+        data.forEach(function (data, i) {
+            json += '"' + myVars[i][0] + '": ' + data + ',';
+        })
+        json = json.substr(0, json.length - 1);
+        json += '}'
+        // console.log(JSON.parse(json));
+        console.log();
+        io.emit('simPanel', JSON.parse(json));
+    }, 0, SIMCONNECT_PERIOD_VISUAL_FRAME, SIMCONNECT_DATA_REQUEST_FLAG_CHANGED);
+}
+
+app.get('/latlon', function (req, res) {
+     simConnect.requestDataOnSimObject([["Plane Latitude", "degrees"], ["Plane Longitude", "degrees"], ["Indicated Altitude", "feet"]], function (data) {
+            aircraft = JSON.parse('{"lat": "' + data[0] + '", "lon": "' + data[1] + '", "alt": "' + data[2] + '"' + '}');
+            aircraftVars(aircraft)
+                .then(currentAircraftVars => { res.json(currentAircraftVars) })
+                .catch(() => { res.write('Error Parsing Data') });
+    }, 0, SIMCONNECT_PERIOD_ONCE, SIMCONNECT_DATA_REQUEST_FLAG_CHANGED);
+ 
+});
+
 io.sockets.on('connection', function (socket) {
 	// der Client ist verbunden
 	socket.emit('simPanel', { zeit: new Date(), text: 'Du bist nun mit dem Server verbunden!' });
